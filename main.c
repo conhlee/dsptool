@@ -34,6 +34,8 @@ int main(int argc, char** argv) {
 
         printf("Decoding DSP data..");
 
+        DspPreprocess(inputHndl.data_u8);
+
         s16* samples = DspDecodeSamples(inputHndl.data_u8);
         u32 sampleCount = DspGetSampleCount(inputHndl.data_u8);
         u32 sampleRate = DspGetSampleRate(inputHndl.data_u8);

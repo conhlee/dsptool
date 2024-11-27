@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     if (argc < 3)
         usage();
 
-    const int outputSpecified = argc >= 3;
+    const int outputSpecified = argc >= 4;
 
     const char* mode = argv[1];
     const char* inputPath = argv[2];

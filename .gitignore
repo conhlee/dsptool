@@ -1,0 +1,8 @@
+*.o
+
+dsptool
+
+*.wav
+*.dsp
+
+.vscode

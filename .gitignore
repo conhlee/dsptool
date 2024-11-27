@@ -6,3 +6,5 @@ dsptool
 *.dsp
 
 .vscode
+
+.DS_Store

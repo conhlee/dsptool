@@ -8,7 +8,7 @@
 
 void usage() {
     //printf("usage: dsptool <towav|todsp> <input dsp/wav> [output dsp/wav]\n");
-    printf("usage: dsptool <input dsp/wav> [output dsp/wav]\n");
+    printf("usage: dsptool <input dsp> [output wav]\n");
     exit(1);
 }
 

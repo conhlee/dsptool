@@ -5,21 +5,25 @@
 
 #include "common.h"
 
-#define DSP_FORMAT (0)
+#define DSP_FORMAT_ADPCM (0x0000)
+
+// Never used.
+//#define DSP_FORMAT_PCMU8 (0x0009)
+//#define DSP_FORMAT_PCM16 (0x000A)
 
 typedef struct __attribute((packed)) {
     u32 sampleCount;
-    u32 adpcmNibbleCount;
+    u32 adpcmNibbleCount; // Includes frame headers
     u32 sampleRate;
 
     u16 isLooped;
 
-    u16 format; // Compare to DSP_FORMAT
+    u16 format; // Compare to DSP_FORMAT_ADPCM
 
-    u32 loopStartOffset;
-    u32 loopEndOffset;
+    u32 loopStartOffset; // Start offset for loop
+    u32 loopEndOffset; // End offset for loop
 
-    u32 _unk18;
+    u32 _currentAddress; // Not used by us, leave at 0
 
     s16 decodeCoefficients[8][2];
 
@@ -33,7 +37,7 @@ typedef struct __attribute((packed)) {
     u16 loopContextPredictedSampleA;
     u16 loopContextPredictedSampleB;
 
-    u16 _reserved[11];
+    u16 _pad[11];
 } DspFileHeader;
 
 void DspPreprocess(u8* dspData);

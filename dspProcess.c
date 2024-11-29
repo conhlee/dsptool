@@ -2,14 +2,17 @@
 
 #include <stdlib.h>
 
+#include <string.h>
+
 #define BYTES_PER_FRAME (7)
 
 void DspPreprocess(u8* dspData) {
     DspFileHeader* fileHeader = (DspFileHeader*)dspData;
 
     fileHeader->format = __builtin_bswap16(fileHeader->format);
-    if (fileHeader->format != DSP_FORMAT)
-        panic("DSP format is nonmatching");
+
+    if (fileHeader->format != DSP_FORMAT_ADPCM)
+        panic("Invalid DSP format (%u)", (unsigned)fileHeader->format);
 
     fileHeader->sampleCount = __builtin_bswap32(fileHeader->sampleCount);
     fileHeader->adpcmNibbleCount = __builtin_bswap32(fileHeader->adpcmNibbleCount);
@@ -21,8 +24,7 @@ void DspPreprocess(u8* dspData) {
 
     fileHeader->loopStartOffset = __builtin_bswap32(fileHeader->loopStartOffset);
     fileHeader->loopEndOffset = __builtin_bswap32(fileHeader->loopEndOffset);
-
-    fileHeader->_unk18 = __builtin_bswap32(fileHeader->_unk18);
+    //fileHeader->_currentAddress = __builtin_bswap32(fileHeader->_currentAddress);
 
     for (unsigned i = 0; i < 8; i++) {
         fileHeader->decodeCoefficients[i][0] =
@@ -77,7 +79,7 @@ s16* DspDecodeSamples(u8* dspData) {
 
     const s16* samplesEnd = samples + fileHeader->sampleCount;
     s16* nextSample = samples;
-    u8* adpcmData = (u8*)(fileHeader + 1);
+    const u8* adpcmData = (u8*)(fileHeader + 1);
 
     while (nextSample < samplesEnd) {
         u8 headerByte = *(adpcmData++);

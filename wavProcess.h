@@ -16,7 +16,7 @@
 
 typedef struct __attribute((packed)) {
     u32 riffMagic; // Compare to RIFF_MAGIC
-    u32 fileSize; // Not including magic and fileSize
+    u32 fileSize; // Not including riffMagic and fileSize
 
     u32 waveMagic; // Compare to WAVE_MAGIC
 } WavFileHeader;

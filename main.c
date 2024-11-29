@@ -7,7 +7,8 @@
 #include "wavProcess.h"
 
 void usage() {
-    printf("usage: dsptool <towav|todsp> <input dsp/wav> [output dsp/wav]\n");
+    //printf("usage: dsptool <towav|todsp> <input dsp/wav> [output dsp/wav]\n");
+    printf("usage: dsptool <input dsp/wav> [output dsp/wav]\n");
     exit(1);
 }
 
@@ -55,9 +56,10 @@ int main(int argc, char** argv) {
         LOG_OK;
     }
     else if (strcasecmp(mode, "todsp") == 0) {
-        outputPath = outputSpecified ? argv[3] : strcat(strdup(inputPath), ".dsp");
+        //outputPath = outputSpecified ? argv[3] : strcat(strdup(inputPath), ".dsp");
 
-        panic("Unimplemented");
+        // TODO
+        panic("WAV > DSP is unimplemented");
     }
     else
         usage();

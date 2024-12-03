@@ -6,6 +6,41 @@
 
 #define BYTES_PER_FRAME (7)
 
+#define DSP_FORMAT_ADPCM (0x0000)
+
+// Never used.
+//#define DSP_FORMAT_PCMU8 (0x0009)
+//#define DSP_FORMAT_PCM16 (0x000A)
+
+typedef struct __attribute((packed)) {
+    u32 sampleCount;
+    u32 adpcmNibbleCount; // Includes frame headers
+    u32 sampleRate;
+
+    u16 isLooped;
+
+    u16 format; // Compare to DSP_FORMAT_ADPCM
+
+    u32 loopStartOffset; // Start offset for loop (in nibbles)
+    u32 loopEndOffset; // End offset for loop (in nibbles)
+
+    u32 startOffset; // Start offset for playing (in nibbles)
+
+    s16 decodeCoefficients[8][2];
+
+    u16 _unk3C;
+
+    u16 initialPredictor; // Matches first frame header
+    s16 initialPredictedSampleA;
+    s16 initialPredictedSampleB;
+
+    u16 loopContextPredictor;
+    s16 loopContextPredictedSampleA;
+    s16 loopContextPredictedSampleB;
+
+    u16 _pad[11];
+} DspFileHeader;
+
 void DspPreprocess(u8* dspData) {
     DspFileHeader* fileHeader = (DspFileHeader*)dspData;
 
@@ -24,7 +59,8 @@ void DspPreprocess(u8* dspData) {
 
     fileHeader->loopStartOffset = __builtin_bswap32(fileHeader->loopStartOffset);
     fileHeader->loopEndOffset = __builtin_bswap32(fileHeader->loopEndOffset);
-    //fileHeader->_currentAddress = __builtin_bswap32(fileHeader->_currentAddress);
+
+    fileHeader->startOffset = __builtin_bswap32(fileHeader->startOffset);
 
     for (unsigned i = 0; i < 8; i++) {
         fileHeader->decodeCoefficients[i][0] =
@@ -67,24 +103,42 @@ static inline s16 clampS16(s32 val) {
     return (s16)val;
 }
 
-s16* DspDecodeSamples(u8* dspData) {
+s16* DspDecodeSamples(u8* dspData, u32 loopCount, u32* sampleCountOut) {
     DspFileHeader* fileHeader = (DspFileHeader*)dspData;
 
-    s16* samples = (s16*)malloc(fileHeader->sampleCount * sizeof(s16));
+    s16* samples = (s16*)malloc(fileHeader->sampleCount * loopCount * sizeof(s16));
     if (!samples)
         panic("malloc failed (samples)");
 
+    u8 predictor = fileHeader->initialPredictor;
     s16 predictedSampleA = fileHeader->initialPredictedSampleA;
     s16 predictedSampleB = fileHeader->initialPredictedSampleB;
 
-    const s16* samplesEnd = samples + fileHeader->sampleCount;
+    const s16* samplesEnd = samples + (fileHeader->sampleCount * loopCount);
     s16* nextSample = samples;
-    const u8* adpcmData = (u8*)(fileHeader + 1);
+    const u8* adpcmData = (u8*)(fileHeader + 1) + (fileHeader->startOffset / 2);
+
+    const u8* adpcmDataLoopStart = (u8*)(fileHeader + 1) + (fileHeader->loopStartOffset / 2);
+    const u8* adpcmDataLoopEnd   = (u8*)(fileHeader + 1) + (fileHeader->loopEndOffset / 2);
+
+    *sampleCountOut = 0;
+
+    unsigned loopedTimes = 0;
 
     while (nextSample < samplesEnd) {
-        u8 headerByte = *(adpcmData++);
-        u16 scale = 1 << (headerByte & 0xF);
-        u8 coefficientIdx = (headerByte >> 4);
+        if (adpcmData >= adpcmDataLoopEnd) {
+            if (loopedTimes++ >= loopCount)
+                break;
+
+            adpcmData = adpcmDataLoopStart;
+
+            predictor = fileHeader->loopContextPredictor;
+            predictedSampleA = fileHeader->initialPredictedSampleA;
+            predictedSampleB = fileHeader->initialPredictedSampleB;
+        }
+
+        u16 scale = 1 << (predictor & 0xF);
+        u8 coefficientIdx = (predictor >> 4);
 
         s16 coefficientA = fileHeader->decodeCoefficients[coefficientIdx][0];
         s16 coefficientB = fileHeader->decodeCoefficients[coefficientIdx][1];
@@ -104,8 +158,13 @@ s16* DspDecodeSamples(u8* dspData) {
                 predictedSampleA = sample;
 
                 *(nextSample++) = sample;
+
+                (*sampleCountOut)++;
             }
         }
+
+        predictor = *adpcmData;
+        adpcmData++;
     }
 
     return samples;

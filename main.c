@@ -8,20 +8,20 @@
 
 void usage() {
     //printf("usage: dsptool <towav|todsp> <input dsp/wav> [output dsp/wav]\n");
-    printf("usage: dsptool <input dsp> [output wav]\n");
+    printf("usage: dsptool <input dsp> [output wav] [loop count]\n");
     exit(1);
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3)
+    if (argc < 2)
         usage();
 
     const int outputSpecified = argc >= 3;
 
     //const char* mode = argv[1];
     const char* inputPath = argv[1];
-
     char* outputPath = NULL;
+    int loopCount = argc >= 4 ? atoi(argv[3]) : 1;
 
     FileHandle inputHndl = { 0 };
     FileHandle outputHndl = { 0 };
@@ -30,14 +30,16 @@ int main(int argc, char** argv) {
 
     inputHndl = FileCreateHandle(inputPath);
 
-    printf("dsptool > towav: exporting to \"%s/\"..\n", outputPath);
+    printf("dsptool > towav: exporting to \"%s\"..\n", outputPath);
 
     printf("Decoding DSP data..");
 
     DspPreprocess(inputHndl.data_u8);
 
-    s16* samples = DspDecodeSamples(inputHndl.data_u8);
-    u32 sampleCount = DspGetSampleCount(inputHndl.data_u8);
+    u32 sampleCount;
+
+    s16* samples = DspDecodeSamples(inputHndl.data_u8, loopCount, &sampleCount);
+    //u32 sampleCount = DspGetSampleCount(inputHndl.data_u8);
     u32 sampleRate = DspGetSampleRate(inputHndl.data_u8);
 
     LOG_OK;
